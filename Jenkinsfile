@@ -6,24 +6,17 @@ pipeline {
     maven 'maven-3.9.x'
   }
 
-  triggers {
-    pollSCM('H/2 * * * *')
-  }
+  triggers { pollSCM('H/2 * * * *') }
 
   options {
     timestamps()
-    ansiColor('xterm')
   }
 
-  environment {
-    WORKDIR = ''
-  }
+  environment { WORKDIR = '' }
 
   stages {
     stage('Checkout') {
-      steps {
-        checkout scm
-      }
+      steps { checkout scm }
     }
 
     stage('Show workspace') {
@@ -44,16 +37,11 @@ pipeline {
           def out = sh(returnStdout: true, script: '''
             set -e
             f=$(find . -maxdepth 2 -name pom.xml | head -n 1)
-            if [ -z "$f" ]; then
-              exit 2
-            fi
-            d=$(dirname "$f")
-            d=${d#./}
+            [ -z "$f" ] && exit 2
+            d=$(dirname "$f"); d=${d#./}
             printf "%s" "$d"
           ''').trim()
-          if (!out) {
-            error "No pom.xml found (depth ≤ 2). Commit your Spring Boot project."
-          }
+          if (!out) { error "No pom.xml found (depth ≤ 2)." }
           env.WORKDIR = (out == '.' ? '' : out)
           echo "Detected WORKDIR='${env.WORKDIR}' ('' means repo root)"
         }
@@ -63,11 +51,8 @@ pipeline {
     stage('Build') {
       steps {
         script {
-          if (env.WORKDIR) {
-            dir(env.WORKDIR) { sh 'mvn -B -DskipTests clean package' }
-          } else {
-            sh 'mvn -B -DskipTests clean package'
-          }
+          if (env.WORKDIR) { dir(env.WORKDIR) { sh 'mvn -B -DskipTests clean package' } }
+          else { sh 'mvn -B -DskipTests clean package' }
         }
       }
     }
@@ -75,11 +60,8 @@ pipeline {
     stage('Repackage Fat JAR') {
       steps {
         script {
-          if (env.WORKDIR) {
-            dir(env.WORKDIR) { sh 'mvn -B spring-boot:repackage' }
-          } else {
-            sh 'mvn -B spring-boot:repackage'
-          }
+          if (env.WORKDIR) { dir(env.WORKDIR) { sh 'mvn -B spring-boot:repackage' } }
+          else { sh 'mvn -B spring-boot:repackage' }
         }
       }
     }
@@ -96,11 +78,8 @@ pipeline {
     stage('Unit Tests') {
       steps {
         script {
-          if (env.WORKDIR) {
-            dir(env.WORKDIR) { sh 'mvn -B test' }
-          } else {
-            sh 'mvn -B test'
-          }
+          if (env.WORKDIR) { dir(env.WORKDIR) { sh 'mvn -B test' } }
+          else { sh 'mvn -B test' }
         }
       }
       post {
@@ -115,7 +94,7 @@ pipeline {
   }
 
   post {
-    success { echo " Build finished successfully." }
-    failure { echo " Build failed. Check the red stage’s Console Output." }
+    success { echo "✅ Build finished successfully." }
+    failure { echo "❌ Build failed. Check the red stage’s Console Output." }
   }
 }
