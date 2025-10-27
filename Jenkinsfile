@@ -7,7 +7,6 @@ pipeline {
   }
 
   triggers { pollSCM('H/2 * * * *') }
-
   options { timestamps() }
 
   stages {
@@ -19,26 +18,18 @@ pipeline {
       steps {
         sh '''
           echo "PWD:"; pwd
-          echo "Top-level files:"
-          ls -la
+          echo "Top-level files:"; ls -la
           echo "--- pom.xml search ---"
           find . -maxdepth 2 -name pom.xml -print
         '''
       }
     }
 
-    stage('Build') {
+    stage('Build (package + repackage)') {
       steps {
         dir('demo') {
-          sh 'mvn -B -DskipTests clean package'
-        }
-      }
-    }
-
-    stage('Repackage Fat JAR') {
-      steps {
-        dir('demo') {
-          sh 'mvn -B spring-boot:repackage'
+          // Combine both goals so the repackage sees the compiled classes from this run
+          sh 'mvn -B -DskipTests clean package spring-boot:repackage'
         }
       }
     }
