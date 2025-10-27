@@ -2,29 +2,26 @@ pipeline {
   agent any
 
   tools {
-    jdk   'jdk-17'         // must match Manage Jenkins → Tools
-    maven 'maven-3.9.x'    // must match Manage Jenkins → Tools
+    jdk   'jdk-17'
+    maven 'maven-3.9.x'
   }
 
   triggers {
-    pollSCM('H/2 * * * *') // easy local trigger (every ~2 minutes)
+    pollSCM('H/2 * * * *')
   }
 
   options {
-    // keep logs tidy; fail fast on common issues
     timestamps()
     ansiColor('xterm')
   }
 
   environment {
-    // Will be set dynamically to the folder that contains pom.xml ('' means repo root)
     WORKDIR = ''
   }
 
   stages {
     stage('Checkout') {
       steps {
-        // Explicit checkout (disable lightweight issues)
         checkout scm
       }
     }
@@ -32,8 +29,7 @@ pipeline {
     stage('Show workspace') {
       steps {
         sh '''
-          echo "PWD:"
-          pwd
+          echo "PWD:"; pwd
           echo "List (top level):"
           ls -la
           echo "--- Searching for pom.xml (depth 2) ---"
@@ -45,8 +41,16 @@ pipeline {
     stage('Detect Maven project folder') {
       steps {
         script {
-          // Find the first pom.xml at depth ≤ 2
-          def out = sh(returnStdout: true, script: "set -e; f=$(find . -maxdepth 2 -name pom.xml | head -n 1); d=$(dirname \"$f\"); d=${d#./}; printf '%s' \"$d\"").trim()
+          def out = sh(returnStdout: true, script: '''
+            set -e
+            f=$(find . -maxdepth 2 -name pom.xml | head -n 1)
+            if [ -z "$f" ]; then
+              exit 2
+            fi
+            d=$(dirname "$f")
+            d=${d#./}
+            printf "%s" "$d"
+          ''').trim()
           if (!out) {
             error "No pom.xml found (depth ≤ 2). Commit your Spring Boot project."
           }
@@ -111,11 +115,7 @@ pipeline {
   }
 
   post {
-    success {
-      echo "✅ Build finished successfully."
-    }
-    failure {
-      echo "❌ Build failed. Check the stage that turned red and its Console Output."
-    }
+    success { echo " Build finished successfully." }
+    failure { echo " Build failed. Check the red stage’s Console Output." }
   }
 }
