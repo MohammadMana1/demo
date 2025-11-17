@@ -1,61 +1,23 @@
 pipeline {
-  agent any
+    agent any
 
-  tools {
-    jdk   'jdk-17'
-    maven 'maven-3.9.x'
-  }
-
-  triggers { pollSCM('H/2 * * * *') }
-  options { timestamps() }
-
-  stages {
-    stage('Checkout') {
-      steps { checkout scm }
-    }
-
-    stage('Show workspace') {
-      steps {
-        sh '''
-          echo "PWD:"; pwd
-          echo "Top-level files:"; ls -la
-          echo "--- pom.xml search ---"
-          find . -maxdepth 2 -name pom.xml -print
-        '''
-      }
-    }
-
-    stage('Build (package + repackage)') {
-      steps {
-        dir('demo') {
-          // Combine both goals so the repackage sees the compiled classes from this run
-          sh 'mvn -B -DskipTests clean package spring-boot:repackage'
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
         }
-      }
-    }
 
-    stage('Archive Artifact') {
-      steps {
-        archiveArtifacts artifacts: 'demo/target/*.jar', fingerprint: true
-      }
-    }
-
-    stage('Unit Tests') {
-      steps {
-        dir('demo') {
-          sh 'mvn -B test'
+        stage('Build Jar') {
+            steps {
+                sh 'mvn -B clean package'
+            }
         }
-      }
-      post {
-        always {
-          junit allowEmptyResults: true, testResults: 'demo/target/surefire-reports/*.xml'
-        }
-      }
-    }
-  }
 
-  post {
-    success { echo '✅ Build finished successfully.' }
-    failure { echo '❌ Build failed. Check the red stage’s Console Output.' }
-  }
+        stage('Archive Artifact') {
+            steps {
+                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+            }
+        }
+    }
 }
