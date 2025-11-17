@@ -36,12 +36,14 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'nexus-admin',
                                                  usernameVariable: 'NEXUS_USER',
                                                  passwordVariable: 'NEXUS_PASS')]) {
-
                     sh '''
-                        JAR_FILE=$(ls demo/target/*.jar)
-                        GROUP_PATH=${GROUP_ID//./\\/}
+                        JAR_FILE=demo/target/demo-0.0.1-SNAPSHOT.jar
+
+                        # Convert GROUP_ID (com.example) to path (com/example)
+                        GROUP_PATH=$(echo "$GROUP_ID" | tr '.' '/')
 
                         echo "Uploading $JAR_FILE to Nexus..."
+                        echo "Group path: $GROUP_PATH"
 
                         curl -v -u "$NEXUS_USER:$NEXUS_PASS" \
                           --upload-file "$JAR_FILE" \
