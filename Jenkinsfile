@@ -2,11 +2,11 @@ pipeline {
     agent any
 
     environment {
-        NEXUS_URL = "http://localhost:8081"
+        NEXUS_URL  = "http://nexus:8081"
         NEXUS_REPO = "maven-releases"
-        GROUP_ID = "com.example"
+        GROUP_ID   = "com.example"
         ARTIFACT_ID = "demo"
-        VERSION = "1.0.0"
+        VERSION     = "1.0.0"
     }
 
     stages {
@@ -39,12 +39,13 @@ pipeline {
                     passwordVariable: 'NEXUS_PASS'
                 )]) {
                     sh '''
-                        JAR_FILE=demo/target/demo-0.0.1-SNAPSHOT.jar
+                        # Built artifact
+                        JAR_FILE="demo/target/demo-0.0.1-SNAPSHOT.jar"
 
-                        GROUP_PATH=`echo "$GROUP_ID" | tr '.' '/'`
+                        # Convert GROUP_ID to path (com/example)
+                        GROUP_PATH=$(echo "$GROUP_ID" | tr "." "/")
 
-                        echo "Uploading $JAR_FILE ..."
-                        echo "Group path: $GROUP_PATH"
+                        echo "Uploading $JAR_FILE to Nexus at $NEXUS_URL ..."
 
                         curl -v -u "$NEXUS_USER:$NEXUS_PASS" \
                           --upload-file "$JAR_FILE" \
